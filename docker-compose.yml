@@ -1,0 +1,30 @@
+version: '3.9'
+services:
+  app:
+    build: .
+    container_name: wx_app
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+  caddy:
+    image: caddy:2-alpine
+    container_name: wx_caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - ACME_AGREE=true
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+      - ./data/forecasts:/srv/forecasts:ro
+    depends_on:
+      - app
+volumes:
+  caddy_data:
+  caddy_config:

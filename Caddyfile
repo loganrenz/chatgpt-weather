@@ -1,0 +1,20 @@
+{$WX_DOMAIN}
+{
+  encode gzip
+  tls {$EMAIL:-auto}
+  route /api/* {
+    uri strip_prefix /api
+    reverse_proxy app:8000
+  }
+  route /web/* {
+    uri strip_prefix /web
+    reverse_proxy app:8000
+  }
+  handle_path /forecasts/* {
+    root * /srv/forecasts
+    file_server
+  }
+  handle / {
+    respond "Marine weather routing service" 200
+  }
+}
