@@ -1,0 +1,33 @@
+/* Custom styles for Marine Weather Routing */
+.grib-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.forecast-content {
+  text-align: left;
+}
+
+.forecast-content table {
+  font-size: 0.9rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+}
+
+.error {
+  color: var(--pico-del-color);
+  padding: 1rem;
+  border-left: 3px solid var(--pico-del-color);
+}
+
+#app {
+  padding: 1rem;
+}
+
+.main-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}

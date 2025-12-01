@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -9,6 +10,7 @@ from typing import Optional
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.staticfiles import StaticFiles
 
 from wx_engine.config import load_config
 from wx_engine.manager import ForecastManager
@@ -27,8 +29,8 @@ def auth(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
         raise HTTPException(status_code=403, detail="Invalid token")
 
 
-@app.get("/")
-def root():
+@app.get("/api")
+def api_root():
     base_path_hint = "Specify your deployment base path (e.g. /app/<owner>/chatgpt-weather) when applicable."
     return {
         "message": "ChatGPT Weather Routing API",
@@ -91,3 +93,82 @@ async def web_view(route_id: str, model: str = "gfs"):
     html = path.read_text()
     page = Path("templates/report_wrapper.html").read_text().replace("{{content}}", html)
     return HTMLResponse(page)
+
+
+@app.get("/api/latest-report/{route_id}")
+def api_latest_report(route_id: str, model: str = "gfs", fmt: str = "json"):
+    """Public endpoint for getting latest report (used by Vue frontend)"""
+    folder = Path(config.forecast_dir) / route_id
+    path = folder / f"latest_{model}.{fmt}"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="No report available")
+    if fmt == "html":
+        return HTMLResponse(path.read_text())
+    return JSONResponse(json.loads(path.read_text()))
+
+
+@app.get("/api/grib-files")
+def grib_files():
+    """List all GRIB files in the grib directory"""
+    grib_dir = Path(config.grib_dir)
+    if not grib_dir.exists():
+        return []
+    
+    files = []
+    for file_path in grib_dir.rglob("*.grib*"):
+        if file_path.is_file():
+            stat = file_path.stat()
+            # Try to extract model and forecast hour from filename
+            # Common patterns: gfs_0.25_20240501_00_f000.grib2, ecmwf_f003.grib
+            name = file_path.name
+            model = None
+            forecast_hour = None
+            
+            if "gfs" in name.lower():
+                model = "GFS"
+            elif "ecmwf" in name.lower():
+                model = "ECMWF"
+            
+            # Look for forecast hour pattern like f000, f003, etc.
+            match = re.search(r'_f(\d+)', name)
+            if match:
+                forecast_hour = int(match.group(1))
+            
+            files.append({
+                "name": name,
+                "path": str(file_path.relative_to(grib_dir)),
+                "size": stat.st_size,
+                "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                "model": model,
+                "forecast_hour": forecast_hour,
+            })
+    
+    # Sort by modified time, most recent first
+    files.sort(key=lambda x: x["modified"], reverse=True)
+    return files
+
+
+# Mount static assets first
+if Path("frontend/dist/assets").exists():
+    app.mount("/assets", StaticFiles(directory="frontend/dist/assets"), name="assets")
+
+
+# Serve the Vue frontend
+@app.get("/")
+async def serve_spa():
+    """Serve the Vue SPA index.html"""
+    index_path = Path("frontend/dist/index.html")
+    if index_path.exists():
+        return HTMLResponse(index_path.read_text())
+    return {"message": "Frontend not built. Run: cd frontend && npm run build"}
+
+
+# Serve other static files from dist
+@app.get("/{filename}")
+async def serve_static_file(filename: str):
+    """Serve static files from frontend/dist"""
+    file_path = Path(f"frontend/dist/{filename}")
+    if file_path.exists() and file_path.is_file():
+        from fastapi.responses import FileResponse
+        return FileResponse(file_path)
+    raise HTTPException(status_code=404, detail="Not found")
