@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+requests
+xarray
+cfgrib
+eccodes
+pandas
+numpy
+apscheduler
+markdown
+pydantic
