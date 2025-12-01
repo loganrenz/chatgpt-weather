@@ -12,7 +12,7 @@ Server-side marine weather routing service for Gulf of Mexico routes. Downloads 
 - Dockerized deployment with Caddy for HTTPS termination
 
 ## Requirements
-- System packages: `libeccodes0 libeccodes-dev libjasper-dev libopenjp2-7-dev`
+- System packages: `libeccodes0 libeccodes-dev libopenjp2-7-dev`
 - Python 3.11+
 
 ## Setup
@@ -63,6 +63,14 @@ cp .env.example .env
 sudo docker compose up --build -d
 ```
 Ensure port 80/443 are open. Caddy automatically provisions certificates.
+
+## Deployment on Narduk Cloud
+The repository includes a GitHub Actions workflow that builds and deploys the container to Narduk Cloud. To enable it:
+
+1. Add a repository secret named `NARDUK_DEPLOY_TOKEN` with the deployment token provided by the repository owner.
+2. Push to `main` (or trigger the **Deploy to Narduk Cloud** workflow manually). The action builds the image, pushes it to GHCR, and calls the Narduk Cloud deployment API.
+3. The app will be available at `https://cloud.nard.uk/app/<owner>/chatgpt-weather/` with paths automatically rewritten (for example `/app/<owner>/chatgpt-weather/api/forecast` is forwarded to `/api/forecast`). The root path now returns a small JSON index of key endpoints to avoid a default 404.
+4. Health checks use the existing `/health` endpoint and the container listens on `0.0.0.0:8000`.
 
 ## Notes
 - GRIB decoding requires the system packages listed above.
