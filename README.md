@@ -12,7 +12,7 @@ Server-side marine weather routing service for Gulf of Mexico routes. Downloads 
 - Dockerized deployment with Caddy for HTTPS termination
 
 ## Requirements
-- System packages: `libeccodes0 libeccodes-dev libjasper-dev libopenjp2-7-dev`
+- System packages: `libeccodes0 libeccodes-dev libopenjp2-7-dev`
 - Python 3.11+
 
 ## Setup
