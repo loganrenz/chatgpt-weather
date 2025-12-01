@@ -27,6 +27,22 @@ def auth(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
         raise HTTPException(status_code=403, detail="Invalid token")
 
 
+@app.get("/")
+def root():
+    base_path_hint = "Specify your deployment base path (e.g. /app/<owner>/chatgpt-weather) when applicable."
+    return {
+        "message": "ChatGPT Weather Routing API",
+        "endpoints": {
+            "health": "/health",
+            "routes": "/routes",
+            "forecast": "/forecast",
+            "latest_report": "/latest-report/{route_id}",
+            "web_view": "/web/{route_id}",
+        },
+        "note": base_path_hint,
+    }
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
