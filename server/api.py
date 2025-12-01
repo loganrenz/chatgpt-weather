@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
 
@@ -167,8 +167,22 @@ async def serve_spa():
 @app.get("/{filename}")
 async def serve_static_file(filename: str):
     """Serve static files from frontend/dist"""
-    file_path = Path(f"frontend/dist/{filename}")
+    # Prevent path traversal attacks
+    if ".." in filename or filename.startswith("/"):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
+    dist_dir = Path("frontend/dist")
+    file_path = dist_dir / filename
+    
+    # Ensure the resolved path is within the dist directory
+    try:
+        file_path = file_path.resolve()
+        dist_dir = dist_dir.resolve()
+        if not str(file_path).startswith(str(dist_dir)):
+            raise HTTPException(status_code=403, detail="Access denied")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
     if file_path.exists() and file_path.is_file():
-        from fastapi.responses import FileResponse
         return FileResponse(file_path)
     raise HTTPException(status_code=404, detail="Not found")

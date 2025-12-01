@@ -53,8 +53,9 @@ const error = ref<string | null>(null)
 const loadRoutes = async () => {
   try {
     routes.value = await apiService.getRoutes()
-    if (routes.value.length > 0 && !selectedRoute.value && routes.value[0]) {
-      selectedRoute.value = routes.value[0].id
+    const firstRoute = routes.value[0]
+    if (firstRoute && !selectedRoute.value) {
+      selectedRoute.value = firstRoute.id
     }
   } catch (err: any) {
     console.error('Failed to load routes:', err)
